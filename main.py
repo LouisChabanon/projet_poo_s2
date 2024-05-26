@@ -21,9 +21,13 @@ class Circuit:
         self._temps_immobilisation = float(temps_immobilisation)
         self._directeur = None
         self._classement = []
+        self._crashed = []
 
     def get_delta_overtake(self, categorie) -> dict:
         return self._delta_overtake[categorie]
+    
+    def get_nbr_tours(self) -> int:
+        return self._nbr_tours
 
     def begin_race(self, voitures, directeur) -> None:
         """
@@ -41,12 +45,12 @@ class Circuit:
                 for voiture in voitures:
                     if pilote.get_nom_voiture() == voiture.get_nom():
                         pilote.set_voiture(voiture)
-                rang = pilote.get_rang()
+                rang = pilote.rang
                 # On place les pilotes sur la grille de départ
                 pilote.set_pos(np.array(troncon.get_pos_f()) - 0.06 * troncon.direction/troncon.length)
         # On trie les pilotes par rang
         self._classement.sort(
-            key=lambda x: x.get_rang()
+            key=lambda x: x.rang
         )  
         self.run()
 
@@ -89,6 +93,16 @@ class Circuit:
                 troncon.update(self, delta_time)
                 # print(str(troncon._id) + " has " + str(troncon.get_pilotes()))
         return None
+    
+    def handle_crash(self, pilot, troncon) -> None:
+        self._classement.remove(pilot)
+        self._crashed.append(pilot)
+        troncon.remove_pilote(pilot)
+        rang = pilot.rang
+        for i in self._classement:
+            if i.rang > rang:
+                i.rang -= 1
+        pilot.rang = -1
 
 
 def load_data(config: str = "./config.xml") -> tuple:

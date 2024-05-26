@@ -113,3 +113,31 @@ class DC(Acteur):
 class Commissaire(Acteur):
     def __init__(self, nom: str, prenom: str) -> None:
         super().__init__(nom, prenom)
+        self._drapeau_bleu = False
+        self._drapeau_jaune = False
+        self._drapeau_damier = False
+
+        def __str__(self) -> str:
+            return f"{self._nom} {self._prenom}"
+
+        def get_drapeau_bleu(self) -> bool:
+            return self._drapeau_bleu
+        
+        def set_drapeau_bleu(self, drapeau: bool) -> None:
+            self._drapeau_bleu = drapeau
+
+        def get_drapeau_jaune(self) -> bool:
+            return self._drapeau_jaune
+        
+        def set_drapeau_jaune(self, drapeau: bool) -> None:
+            self._drapeau_jaune = drapeau
+
+        def get_drapeau_damier(self) -> bool:
+            return self._drapeau_damier
+        
+        def set_drapeau_damier(self, drapeau: bool) -> None:
+            self._drapeau_damier = drapeau
+
+        drapeau_bleu = property(get_drapeau_bleu, set_drapeau_bleu)
+        drapeau_jaune = property(get_drapeau_jaune, set_drapeau_jaune)
+        drapeau_damier = property(get_drapeau_damier, set_drapeau_damier)

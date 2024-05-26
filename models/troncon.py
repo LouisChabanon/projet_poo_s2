@@ -46,8 +46,12 @@ class Troncon:
 
     def update(self, circuit, delta_time: float) -> None:
         for pilote in self._pilotes:
+            if pilote.get_tour() > circuit.get_nbr_tours():
+                continue
             self.update_pilot_position(circuit, pilote, delta_time)
-        self.depassement(circuit)
+        
+        if not self._commissaire.drapeau_bleu:
+            self.depassement(circuit)
 
 
     def update_pilot_position(self, circuit, pilote, delta_time: float) -> None:
@@ -72,9 +76,7 @@ class Troncon:
 
             if next_troncon._id == 0:
                 pilote.set_tour(pilote.get_tour() + 1)
-                print(str(pilote) + " a commencer un nouveau tour")
-
-            print(str(pilote) + " a changé de tronçon")
+                print(str(pilote) + " a commencer un nouveau tour (" + str(pilote.get_tour()) + " / " + str(circuit.get_nbr_tours()) + ")")
 
         else:
             pilote.position = tuple(np.array(pilote.position) + distance_to_travel * direction_unit)
@@ -83,9 +85,13 @@ class Troncon:
         """
         Gère les dépassements entre pilotes sur le tronçon
         """
+        if len(self._pilotes) < 2:
+            return None
+            
         self._pilotes.sort(key=lambda x: x.rang)
-        for i in range(len(self._pilotes)-1):
-            pilote_i, pilote_i1 = self._pilotes[i], self._pilotes[i+1]
+    
+        for i in range(1, len(self._pilotes)-1):
+            pilote_i, pilote_i1 = self._pilotes[i-1], self._pilotes[i]
             
             time_diff = np.linalg.norm(np.array(pilote_i1.position) - np.array(pilote_i.position))**2 / pilote_i1.get_speed(self._categorie)
             
@@ -94,17 +100,17 @@ class Troncon:
                 # Gestion des accidents
                 if pilote_i.get_crash_chance() < random.uniform(0, 1):
                     print(str(pilote_i) + " a eu un accident")
-                    self.remove_pilote(pilote_i)
-                    
+                    circuit.handle_crash(pilote_i, self)
+                    if len(self._pilotes) < 2:
+                        return None
+                    continue
 
-                elif pilote_i1.get_crash_chance() < random.uniform(0, 1):
+                if pilote_i1.get_crash_chance() < random.uniform(0, 1):
                     print(str(pilote_i1) + " a eu un accident")
-                    self.remove_pilote(pilote_i1)
-                    for i in self._pilotes:
-                        print(i.rang)
-                else:
-                    print(str(pilote_i1) + " a dépassé " + str(pilote_i))
-                    pilote_i.rang += 1
-                    pilote_i1.rang -= 1
-            else:
-                pilote_i1.position = pilote_i.position + np.sqrt((time_diff+0.03)*pilote_i1.get_speed(self._categorie)) * self._direction / self._length
+                    circuit.handle_crash(pilote_i1, self)
+                    if len(self._pilotes) < 2:
+                        return None
+                    continue
+
+                print(str(pilote_i1) + " a dépassé " + str(pilote_i))
+                pilote_i.rang, pilote_i1.rang = pilote_i1.rang, pilote_i.rang
