@@ -17,17 +17,7 @@ class Troncon:
         self._alpha = 0
         self._direction = np.array(self._pos_f) - np.array(self._pos_i)
         self._length = np.linalg.norm(self._direction)
-    '''        if not self._pos_f[0] - self._pos_i[0] == 0:
-            self._alpha = np.arctan(
-                (self._pos_f[1] - self._pos_i[1]) / (self._pos_f[0] - self._pos_i[0])
-            )
-        else:
-            self._alpha = np.pi / 2
-        self._length = np.sqrt(
-            (self._pos_f[0] - self._pos_i[0]) ** 2
-            + (self._pos_f[1] - self._pos_i[1]) ** 2
-        )
-    '''
+
     def get_pilotes(self) -> list:
         return self._pilotes
 
@@ -56,27 +46,65 @@ class Troncon:
 
     def update(self, circuit, delta_time: float) -> None:
         for pilote in self._pilotes:
-            delta_perf = pilote.get_perf(self._id)
-            speed = pilote.get_speed(self._categorie)
-            distance_to_travel = (1 + delta_perf) * speed * delta_time
+            self.update_pilot_position(circuit, pilote, delta_time)
+        self.depassement(circuit)
 
-            distance_to_end = np.linalg.norm(np.array(pilote.position) - np.array(self._pos_f))
+
+    def update_pilot_position(self, circuit, pilote, delta_time: float) -> None:
+        """
+        Met à jour la position du pilote sur le tronçon
+        """   
+        delta_perf = pilote.get_perf(self._id)
+        speed = pilote.get_speed(self._categorie)
+        distance_to_travel = (1 + delta_perf) * speed * delta_time
+
+        distance_to_end = np.linalg.norm(np.array(pilote.position) - np.array(self._pos_f))
             
 
-            delta = distance_to_travel - distance_to_end
-            direction_unit = self._direction / self._length
-            # Si on dépasse la fin du tronçon
-            if delta > 0:
-                self.remove_pilote(pilote)
-                next_troncon = circuit.get_next_troncon(self._id)
-                next_troncon.add_pilote(pilote)
-                pilote.position = tuple(np.array(next_troncon.get_pos_i()) + delta * (next_troncon.direction / next_troncon.length))
+        delta = distance_to_travel - distance_to_end
+        direction_unit = self._direction / self._length
+        # Si on dépasse la fin du tronçon
+        if delta > 0:
+            self.remove_pilote(pilote)
+            next_troncon = circuit.get_next_troncon(self._id)
+            next_troncon.add_pilote(pilote)
+            pilote.position = tuple(np.array(next_troncon.get_pos_i()) + delta * (next_troncon.direction / next_troncon.length))
 
-                if next_troncon._id == 0:
-                    pilote.set_tour(pilote.get_tour() + 1)
-                    print(str(pilote) + " a commencer un nouveau tour")
+            if next_troncon._id == 0:
+                pilote.set_tour(pilote.get_tour() + 1)
+                print(str(pilote) + " a commencer un nouveau tour")
 
-                print(str(pilote) + " a changé de tronçon")
+            print(str(pilote) + " a changé de tronçon")
 
+        else:
+            pilote.position = tuple(np.array(pilote.position) + distance_to_travel * direction_unit)
+
+    def depassement(self, circuit) -> None:
+        """
+        Gère les dépassements entre pilotes sur le tronçon
+        """
+        self._pilotes.sort(key=lambda x: x.rang)
+        for i in range(len(self._pilotes)-1):
+            pilote_i, pilote_i1 = self._pilotes[i], self._pilotes[i+1]
+            
+            time_diff = np.linalg.norm(np.array(pilote_i1.position) - np.array(pilote_i.position))**2 / pilote_i1.get_speed(self._categorie)
+            
+            if time_diff < circuit.get_delta_overtake(self._categorie) and pilote_i1.get_overtake_perf() < random.uniform(0, 1):
+
+                # Gestion des accidents
+                if pilote_i.get_crash_chance() < random.uniform(0, 1):
+                    print(str(pilote_i) + " a eu un accident")
+                    self.remove_pilote(pilote_i)
+                    
+
+                elif pilote_i1.get_crash_chance() < random.uniform(0, 1):
+                    print(str(pilote_i1) + " a eu un accident")
+                    self.remove_pilote(pilote_i1)
+                    for i in self._pilotes:
+                        print(i.rang)
+                else:
+                    print(str(pilote_i1) + " a dépassé " + str(pilote_i))
+                    pilote_i.rang += 1
+                    pilote_i1.rang -= 1
             else:
-                pilote.position = tuple(np.array(pilote.position) + distance_to_travel * direction_unit)
+                pilote_i1.position = pilote_i.position + np.sqrt((time_diff+0.03)*pilote_i1.get_speed(self._categorie)) * self._direction / self._length

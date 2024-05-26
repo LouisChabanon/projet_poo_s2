@@ -69,6 +69,9 @@ class Pilote(Acteur):
 
     def get_rang(self) -> int:
         return self._rang
+    
+    def set_rang(self, rang: int) -> None:
+        self._rang = int(rang)
 
     def get_tour(self) -> int:
         return self._tour
@@ -76,9 +79,16 @@ class Pilote(Acteur):
     def set_tour(self, tour: int) -> None:
         self._tour = tour
 
+    def get_overtake_perf(self) -> float:
+        return self._h_overtake
+    
+    def get_crash_chance(self) -> float:
+        return self._h_crash
+
     voiture = property(get_voiture, set_voiture)
     position = property(get_pos, set_pos)
     tour = property(get_tour, set_tour)
+    rang = property(get_rang, set_rang)
 
     def get_perf(self, troncon) -> float:
         if troncon != self._troncon_id:

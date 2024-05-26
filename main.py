@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 import numpy as np
-import time as t
+import ast
 
 from models.acteur import DC, Pilote, Commissaire
 from models.troncon import Troncon
@@ -17,10 +17,13 @@ class Circuit:
     ):
         self._troncons = troncons
         self._nbr_tours = int(nbr_tours)
-        self._delta_overtake = delta_overtake
+        self._delta_overtake = ast.literal_eval(delta_overtake)
         self._temps_immobilisation = float(temps_immobilisation)
         self._directeur = None
         self._classement = []
+
+    def get_delta_overtake(self, categorie) -> dict:
+        return self._delta_overtake[categorie]
 
     def begin_race(self, voitures, directeur) -> None:
         """
